@@ -20,11 +20,15 @@ Mycoroutine::~Mycoroutine() {
 
 void Mycoroutine::co_create(std::function<void()> func) {
     coroutine *routine = new coroutine(func,this);
+    std::lock_guard<std::mutex> lock(mutex_);
     ready_lists_.emplace_back(routine);
 
 }
 void Mycoroutine::co_yiled() {
-    ready_lists_.push_back(_cur_routine_);
+    {
+        std::lock_guard<std::mutex> lock(mutex_);
+        ready_lists_.push_back(_cur_routine_);
+    }
     swapcontext(_cur_routine_->Ctx(),&sched_ctx_);
 
 }
@@ -35,11 +39,14 @@ void Mycoroutine::co_dispatch() {
         // if(ready_lists_.size() == 0) {
         //     continue;
         // }
-
-        running_lists_ = std::move(ready_lists_);
+        {
+            std::lock_guard<std::mutex> lock(mutex_);
+            running_lists_ = std::move(ready_lists_);
+        }
         ready_lists_.clear();
         for(auto it = running_lists_.begin();it != running_lists_.end();++it) {
             _cur_routine_ = *it;
+            printf("sched it\n");
             swapcontext(&sched_ctx_,(*it)->Ctx());
             _cur_routine_ = nullptr;
             if((*it)->finished()) {
@@ -60,11 +67,18 @@ void Mycoroutine::co_dispatch() {
             int fd = event.data.fd;
             if(io_waiting_routines_.count(fd) > 0) {
                 //唤醒对应协程
+                printf("Epoll wake up fd\n");
                 if(event.events | EPOLLIN && io_waiting_routines_[fd].r_) {
-                    ready_lists_.push_back(io_waiting_routines_[fd].r_);
+                    {
+                        std::lock_guard<std::mutex> lock(mutex_);
+                        ready_lists_.push_back(io_waiting_routines_[fd].r_);
+                    }
                 }
                 if(event.events | EPOLLOUT && io_waiting_routines_[fd].w_) {
-                    ready_lists_.push_back(io_waiting_routines_[fd].w_);
+                    {
+                        std::lock_guard<std::mutex> lock(mutex_);
+                        ready_lists_.push_back(io_waiting_routines_[fd].w_);
+                    }
                 }
 
             }else {
@@ -92,7 +106,7 @@ void Mycoroutine::RegisterFdToScheduler(int fd,bool is_write) {
         //将fd注册到epoll
         struct epoll_event ev;
         ev.data.fd = fd;
-        ev.events = EPOLLIN | EPOLLOUT | EPOLLET;
+        ev.events = is_write ? EPOLLOUT | EPOLLET : EPOLLIN | EPOLLET;
         if(epoll_ctl(epoll_fd_,EPOLL_CTL_ADD,fd,&ev) < 0) {
             perror("epoll_ctl add");
             exit(0);

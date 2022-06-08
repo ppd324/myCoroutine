@@ -5,7 +5,8 @@
 #ifndef COROUTINE_TASK_H
 #define COROUTINE_TASK_H
 #include <utility>
-
+#include <iostream>
+#include <thread>
 #include "Mycoroutine.h"
 
 class Task {

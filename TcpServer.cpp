@@ -5,7 +5,7 @@
 #include <cstring>
 #include "TcpServer.h"
 #include "Task.h"
-#include "co_socket.h"
+#include "TcpConnection.h"
 TcpServer::TcpServer(uint16_t port,uint8_t num):_port(port),_threadNum(num) {
     _accept = std::make_shared<TcpAcceptor>();
     _threadPool = std::make_shared<ThreadPool>(_threadNum);
@@ -30,20 +30,22 @@ TcpServer::TcpServer(uint16_t port,uint8_t num):_port(port),_threadNum(num) {
 }
 
 void TcpServer::echo(int fd) {
-    Connection conn(fd);
-    char buf[128] = {0};
+    TcpConnection conn(128,fd);
+    Mycoroutine *coroutine = Mycoroutine::mycoroutine();
+    std::cout<<"thread id is:"<<std::this_thread::get_id()<<" coroutine is:"<<coroutine<<std::endl;
     while(true) {
-        memset(buf,0,128);
-        int ret = conn.Read(buf,128);
+        int ret = conn.Read();
         if(ret <= 0) {
             conn.Close();
             break;
         }
-        ret = conn.Write(buf,ret);
+        conn.Process();
+        ret = conn.Write();
         if(ret <= 0) {
             conn.Close();
             break;
         }
+        conn.Clear();
 
     }
 

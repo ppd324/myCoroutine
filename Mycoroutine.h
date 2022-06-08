@@ -10,6 +10,8 @@
 #include <vector>
 #include <list>
 #include <unordered_map>
+#include <mutex>
+
 class coroutine;
 class Mycoroutine {
 public:
@@ -47,6 +49,7 @@ private:
         coroutine *w_,*r_;
     }WaitingRoutines;
     std::unordered_map<int,WaitingRoutines> io_waiting_routines_;
+    std::mutex mutex_;
 
 };
 #endif //COROUTINE_MYCOROUTINE_H
