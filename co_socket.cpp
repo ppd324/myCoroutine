@@ -71,7 +71,12 @@ int Listener::Accept() {
 
 }
 
-Connection::Connection(int fd):_fd(fd) {}
+Connection::Connection(int fd):_fd(fd) {
+    if(fcntl(_fd,F_SETFL,O_NONBLOCK) < 0) {
+        perror("fcntl");
+        exit(0);
+    }
+}
 void Connection::Close() {
     if(_fd < 0) {
         return;
