@@ -1,9 +1,9 @@
-#include "coroutine.h"
-#include "co_socket.h"
+#include "coroutine/coroutine.h"
+#include "net/co_socket.h"
 #include <iostream>
 #include <unistd.h>
 #include <cstring>
-#include "TcpServer.h"
+#include "net/TcpServer.h"
 
 int main() {
 //    Mycoroutine *mycoroutine = Mycoroutine::mycoroutine();
@@ -40,7 +40,7 @@ int main() {
 //        }
 //    });
 //    mycoroutine->co_dispatch();
-    TcpServer tcpServer(8000,5);
+    TcpServer tcpServer(8000,1);
 
 
     return 0;
